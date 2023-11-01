@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+
+tr -cs 'A-Za-z' '[\n*]' | sort -u

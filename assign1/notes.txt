@@ -1,0 +1,110 @@
+1.3
+Fullwidth comma, 0xFF0C
+
+
+1.4
+7 occurrences
+
+
+1.5
+1. Where are the sh, sleep, and type commands located?
+
+Command: which
+
+sh: /usr/bin/sh
+sleep: /usr/bin/sleep
+type: /usr/bin/type
+
+2. What executable programs in /usr/bin have names that are exactly three characters long and start with the two letters se, and what do they do?
+
+Command: cd /usr/bin/ && ls | grep “^se.$”
+
+sed: helps in operations like selecting the text, substituting text, modifying an original file, adding lines to text, or deleting lines from the text
+seq: generate numbers from first to last in steps of increment
+
+3. When you execute the command named by the symbolic link /usr/local/cs/bin/emacs, which file actually is executed?
+
+Command: ls -l /usr/local/cs/bin/emacs
+
+Emacs
+../emacs-29.1/bin/emacs-29.1
+
+4. What is the version number of the /usr/bin/gcc program? of the plain gcc program? Why are they different programs?
+
+Command: /usr/bin/gcc -v, gcc -v
+/usr/bin/gcc: 8.5.0 20210514 (Red Hat 8.5.0-4) (GCC)
+gcc: 13.2.0
+They’re different programs because they're different executables when you change your path.
+
+5. The chmod program changes permissions on a file. What does the symbolic mode u+sx,o-w mean, in terms of permissions?
+
+u+sx: grants the user special mode permissions in execute mode, enabling them to execute the file with root user permissions
+
+o-w: revokes write permissions for users who are not the file owner or members of the file’s group, preventing other users from writing to the file
+
+u+sx,o-w: multiple symbolic modes can be specified by separating them with commas; this combination grants the user special execute permissions and removes write permissions for others
+
+6. Use the find command to find all directories that are located under (or are the same as) the directory /usr/local/cs, and that were modified after the directory /usr/local/cs/lib was modified. Sort the directory names alphabetically and list just the first five names, or list them all if there are fewer than five names.
+
+Command: find /usr/local/cs -type d -newer /usr/local/cs/lib | sort | head -n 5
+
+/usr/local/cs
+/usr/local/cs/bin
+/usr/local/cs/bin/.del
+/usr/local/cs/coreutils-9.4
+/usr/local/cs/coreutils-9.4/bin
+
+7. How many regular files are in the Python source code distribution located in the directory matching the globbing pattern /usr/local/cs/src/python/Python-*? Do not count directories or symbolic links or anything else; just regular files.
+
+Command: find /usr/local/cs/src/python/Python-* -type f | wc -l
+
+4780
+
+8. How many of the files in /usr/local/cs/bin are symbolic links?
+
+Command: find /usr/local/cs/bin -type l | wc -l
+
+373
+
+9. What is the oldest file in the /usr/lib64 directory? Use the last-modified time to determine age. Specify the name of the file without the /usr/lib64/ prefix. Don’t ignore files whose names start with ".", but do ignore files under subdirectories of /usr/lib64/. Consider files of all types, that is, your answer might be a regular file, or a directory, or something else.
+
+Command: find /usr/lib64 -maxdepth 1 -printf "%T+ %p\n" | sort | head -n 1 | cut -d ' ' -f 2
+
+libbz2.so.1
+
+10. In Emacs, what commands have transpose in their name?
+
+Command: C-h a transpose
+
+transpose-chars
+transpose-lines
+transpose-paragraphs
+transpose-regions
+transpose-sentences
+transpose-sexps
+transpose-words
+
+11. What does the Emacs yank function do, and how can you easily invoke it using keystrokes?
+
+Reinsert (“paste”) the last stretch of killed text
+C-y, S-<insertchar>, S-<insert>
+
+12. Use the ps command to find your own login shell’s process, all that process’s ancestors, and all its descendants. Some ps options that you might find useful include -e, -f, -j, -l, -t, -H, and -T.
+
+Command: ps -p $$
+Current process: 327641 pts/11
+
+Command: ps -p $$ -o ppid= | xargs ps -p
+Process’s ancestors: 327639 ?
+
+Command: ps -e --forest (check tree)
+Process’s descendants: 393604 pts/11
+
+Command: pstree -s <pid> (in this case 327641)
+systemd───sshd───sshd───sshd───bash───pstree
+
+On a different run:
+Command: ps -efH | grep $$
+2824660 2824658
+2824718 2824660
+2824719 2824660

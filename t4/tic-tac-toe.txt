@@ -1,0 +1,189 @@
+tic-tac-toe.txt
+
+
+Setup
+1. Install Node.js
+2. In the CodeSandbox tab (https://codesandbox.io/s/vy6j3f?file=%2FApp.js&utm_medium=sandpack) press the top-left corner button to open the menu, and then choose File > Export to ZIP in that menu to download an archive of the files locally
+3. Unzip the archive, then open a terminal and cd to the directory that’s unzipped
+4. Install the dependencies with `npm install`
+5. Run `npm start` to start a local server and follow the prompts to view the code running in a browser
+
+
+Building the Board
+1. Copy paste `<button className="square">X</button>` nine times and wrap it in empty JSX elements
+    <> 
+        <button className="square">X</button>
+        // but nine times
+    </>
+2. Split the buttons into groups of three and wrap the groups with `<div className="board-row"> </div>` to apply the proper styling
+3. Change the name of the function from Square to Board
+4. Move all variations of `<button className="square">1</button>` to its own function called Square()
+5. Change the existing buttons to <Square />
+6. Use props to pass the value each square should have from the parent component (Board) to its child (Square) 
+    function Square({ value }) {
+        return <button className="square">{value}</button>;
+    }
+7. Add the value prop to each Square component (Ex: <Square value="1" />)
+8. The browser should display a board with the numbers 1-9
+
+
+Making an Interactive Component
+1. Declare a function called handleClick inside of the Square
+    1. function handleClick()
+2. Add onClick to the props of the button JSX element returned from the Square
+    1. onClick={handleClick}
+3. Import useState at the top of the file
+    1. import { useState } from 'react';
+4. Remove the value prop from the Square component
+5. Add a new line at the start of the Square that calls useState and have it return a state variable called value
+    1. const [value, setValue] = useState(null);
+    2. value stores the value and setValue is a function that can be used to change the value
+    3. The null passed to useState is used as the initial value for this state variable, so value starts off equal to null
+6. Remove the value prop from all nine of the Square components created by the Board component
+7. Replace the console.log("clicked!"); event handler in the function handleClick() with setValue('X');
+    1. By calling this set function from an onClick handler, React re-renders that Square whenever its <button> is clicked
+    2. After the update, the Square’s value will be 'X', so “X” will be on the game board
+    3. Each Square has its own state: the value stored in each Square is completely independent of the others
+    4. This is because when a set function in a component is called, React automatically updates the child components inside too
+
+
+Lifting State Up
+1. Edit the Board component so that it declares a state variable named squares that defaults to an array of 9 nulls corresponding to the 9 squares
+    1. const [squares, setSquares] = useState(Array(9).fill(null));
+2. Pass the value prop down to each Square that it renders
+    1. <Square value={squares[0]} />
+3. Edit the Square component to receive the value prop from the Board component and remove the Square component’s own stateful tracking of value and the button’s onClick prop
+    function Square({value}) {
+        return <button className="square">{value}</button>;
+    }
+4. Pass down a function from the Board component to the Square component and have Square call that function when a square is clicked
+    1. <button className="square" onClick={onSquareClick}>
+5. Add the onSquareClick function to the Square component’s props
+    1. function Square({ value, onSquareClick }) {}
+6. Connect the onSquareClick prop to a function in the Board component named handleClick
+    1. To connect onSquareClick to handleClick, pass a function to the onSquareClick prop of the first Square component
+    2. <Square value={squares[0]} onSquareClick={handleClick} />
+7. Define the handleClick function inside the Board component to update the squares array holding the board’s state
+    function handleClick() {
+        const nextSquares = squares.slice();
+        nextSquares[0] = "X";
+        setSquares(nextSquares);
+    }
+8. Update handleClick to be able to update any square since it’s hardcoded to update the index for the upper left square (0)
+    1. Add an argument i to the handleClick function that takes the index of the square to update
+    function handleClick(i) {
+        const nextSquares = squares.slice();
+        nextSquares[i] = "X";
+        setSquares(nextSquares);
+    }
+9. Pass that i to handleClick
+    1. <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
+    2. When the square is clicked, the code after the => “arrow” will run, calling handleClick(0)
+10. Update the other eight squares to call handleClick from the arrow functions passed
+    1. Ensure that the argument for each call of the handleClick corresponds to the index of the correct square
+    2. <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
+11. Now the X’s can be added to any square on the board just by clicking on them
+
+
+Taking Turns
+1.  To keep track of the different turns, add another piece of state to the Board component
+    1. const [xIsNext, setXIsNext] = useState(true);
+    2. Each time a player moves, xIsNext (a boolean) will be flipped to determine which player goes next and the game’s state will be saved
+2. Update the Board’s handleClick function to flip the value of xIsNext
+    function handleClick(i) {
+        const nextSquares = squares.slice();
+        if (xIsNext) {
+            nextSquares[i] = "X";
+        } else {
+            nextSquares[i] = "O";
+        }
+        setSquares(nextSquares);
+        setXIsNext(!xIsNext);
+    }
+3. Clicking on different squares should alternate them between X and O
+    1. But there’s a problem: clicking on the same square multiple times changes the signs
+4. To fix this, check to see if the square already has an X or an O
+    1. If the square is already filled, return in the handleClick function early before it tries to update the board state
+    if (squares[i]) {
+        return;
+    }
+5. Now X’s or O’s may only be added to empty squares
+
+
+Declaring a Winner
+1. Add a helper function called calculateWinner that takes an array of 9 squares, checks for a winner and returns 'X', 'O', or null as appropriate
+2. Call calculateWinner(squares) in the Board component’s handleClick function to check if a player has won
+    if (squares[i] || calculateWinner(squares)) {
+        return;
+    }
+3. Add a status section to the Board component to let the players know when the game is over
+    1. If the game is over, the status will display the winner, and if the game is ongoing, the status will display which player’s turn is next
+    2. <div className="status">{status}</div>
+
+
+Adding Time Travel
+1. Store the past squares arrays in another array called history, which will be stored as a new state variable and represent all board states, from the first to the last move
+2. Add a Game component with export default
+    1. Place the history state that contains the entire game history there
+    2. export default function Game() {}
+    3. function Board() {}
+    4. Removing the export default keywords before the function Board() declaration and adding them before the function Game() declaration tells the index.js file to use the Game component as the top-level component instead of the Board component
+3. Add some state to the Game component to track which player is next and the history of moves
+    1. const [xIsNext, setXIsNext] = useState(true);
+    2. const [history, setHistory] = useState([Array(9).fill(null)]);
+4. To render the squares for the current move, read the last squares array from the history
+    1. const currentSquares = history[history.length - 1];
+5. Create a handlePlay function inside the Game component that will be called by the Board component to update the game
+    1. Pass xIsNext, currentSquares and handlePlay as props to the Board component
+    2. function handlePlay(nextSquares) {}
+    3. <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+6. Make the Board component fully controlled by the props it receives
+    1. Change the Board component to take three props: xIsNext, squares, and a new onPlay function that Board can call with the updated squares array when a player makes a move
+    2. Remove the first two lines of the Board function that call useState
+    function Board({ xIsNext, squares, onPlay }) {
+        function handleClick(i) {}
+    }
+7. Replace the setSquares and setXIsNext calls in handleClick in the Board component with a single call to the new onPlay function so the Game component can update the Board when the user clicks a square
+    1. onPlay(nextSquares);
+    2. The Board component is fully controlled by the props passed to it by the Game component
+    3. Implement the handlePlay function in the Game component to get the game working again
+8. Update history by appending the updated squares array as a new history entry
+    1. Toggle xIsNext, just as Board used to do
+    2. setHistory([...history, nextSquares]);
+    3. setXIsNext(!xIsNext);
+    4. [...history, nextSquares] creates a new array that contains all the items in history, followed by nextSquares
+
+
+Showing the Past Moves
+1. Use map to transform the history of moves into React elements representing buttons on the screen, and display a list of buttons to “jump” to past moves
+    1. function jumpTo(nextMove) {}
+    2. const moves = history.map((squares, move) => {});
+2. Receive the warning “Warning: Each child in a list should have a unique "key" prop”
+3. Because React is a computer program that does not know what the user intends, the user needs to specify a key property for each list item to differentiate each list item from its siblings
+    1. In the tic-tac-toe game’s history, each past move has a unique ID associated with it: it’s the sequential number of the move
+    2. Moves will never be re-ordered, deleted, or inserted in the middle, so it’s safe to use the move index as a key
+4. In the Game function, add the key as <li key={move}>, and if the rendered game is reloaded, React’s “key” error should disappear:
+    1. <li key={move}>
+5. Before implementing jumpTo, the Game component is required to keep track of which step the user is currently viewing
+    1. Define a new state variable called currentMove, defaulting to 0
+    2. const [currentMove, setCurrentMove] = useState(0);
+6. Update the jumpTo function inside Game to update that currentMove and set xIsNext to true if the number that currentMove is changing to is even
+    1. setCurrentMove(nextMove);
+    2. setXIsNext(nextMove % 2 === 0);
+7. Only the history up to the point of the time skip is needed
+    1. Instead of adding nextSquares after all items in history, add it after all items in history.slice(0, currentMove + 1) so that only that portion of the old history is kept
+8. Each time a move is made, update currentMove to point to the latest history entry
+    1. const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+    2. setHistory(nextHistory);
+    3. setCurrentMove(nextHistory.length - 1);
+9. Modify the Game component to render the currently selected move, instead of always rendering the final move
+    1. const currentSquares = history[currentMove];
+10. If the user clicks on any step in the game’s history, the tic-tac-toe board should immediately update to show what the board looked like after that step occurred
+
+
+Final Cleanup
+1. xIsNext === true when currentMove is even and xIsNext === false when currentMove is odd
+    1. If the value of currentMove is known, then what xIsNext should be should also be known
+    2. There’s no reason for both of them to be stored in state
+    3. Change Game so that it doesn’t store xIsNext as a separate state variable and instead figures it out based on the currentMove
+    4. const xIsNext = currentMove % 2 === 0;

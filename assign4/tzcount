@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+
+import sys
+from collections import Counter
+
+def main():
+    timezones = [strings.rstrip()[-5:] for strings in sys.stdin if "CommitDate: " in strings]
+    count = dict(Counter(timezones))
+    toInt = lambda s: int(s)
+    sortedKeys = sorted(count.keys(), key=toInt)
+
+    for e in sortedKeys:
+        print(str(e) + " " + str(count[e]))
+    
+if __name__ == "__main__":
+    main()

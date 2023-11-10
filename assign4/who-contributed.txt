@@ -1,0 +1,29 @@
+We first use the command git log -S <string>. This command allows us to find commits that introduced or removed a given string.
+
+git log -S "Even newspaper reports present contradictory information."
+
+commit c12b432741eed9a422fbf99fa27af6e7a941d88b
+Author: Arthur David Olson <ado@elsie>
+Date:   Thu Dec 21 11:43:42 1995 -0500
+
+    Eggert changes
+    
+    SCCS-file: northamerica
+    SCCS-SID: 7.20
+
+The result shows us that the author of the commit is Arthur David Olson, but the description reads "Eggert changes." To check more information, we use the command git log --pretty=fuller <commit ID> to display additional details in the log output such as the commit author, the main piece of information we're looking for.
+
+git log --pretty=fuller c12b432741eed9a422fbf99fa27af6e7a941d88b
+
+commit c12b432741eed9a422fbf99fa27af6e7a941d88b
+Author:     Arthur David Olson <ado@elsie>
+AuthorDate: Thu Dec 21 11:43:42 1995 -0500
+Commit:     Paul Eggert <eggert@cs.ucla.edu>
+CommitDate: Wed Jul 18 03:02:20 2012 -0400
+
+    Eggert changes
+    
+    SCCS-file: northamerica
+    SCCS-SID: 7.20
+
+Now, we can see that although the Author of the commit was Arthur David Olson, the one who actually committed the changes was Paul Eggert. I'm not too sure how the law works, but I would say that since Paul Eggert was the one who actually committed the changes, Paul Eggert is guilty. Sorry man.

@@ -1,0 +1,5 @@
+Using git branch, we can see that in ~eggert/src/github/git, we have five branches: maint, master, next, seen, and todo. There's an asterick next to master, indicating that we're currently on the master branch.
+
+For our own cloned git directory, we only have one branch, master, that we are also currently on.
+
+The reason for this difference is because the repository I cloned only clones the main branch by default, while ~eggert/src/github/git has other branches inside the repository. 

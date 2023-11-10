@@ -2,13 +2,13 @@ To see around what timeframe the fix was introduced, I first checked out the Git
 
 * In read-only repositories, "git merge-tree" tried to come up with a merge result tree object, which it failed (which is not wrong) and led to a segfault (which is bad), which has been corrected. (merge 92481d1b26 js/merge-ort-in-read-only-repo later to maint).
 
-Since they specified they wanted to merge a specific commit ID later, I decided to scrap my timeframe idea and look at what specific changes were made in commit 92481d1b26. The title for this commit is "merge-ort: return early when failing to write a blob." The very first line of the description is "In the previous commit, we fixed a segmentation fault when a tree object could not be written."
+Since they specified they wanted to merge a specific commit ID later, I decided to scrap my timeframe idea and look at what specific changes were made in commit 92481d1b26, which is authored by Johannes Schindelin. The title for this commit is "merge-ort: return early when failing to write a blob." The very first line of the description is "In the previous commit, we fixed a segmentation fault when a tree object could not be written."
 
 So it seems the commit we're looking for is the commit before this one. However, reading on in the description, it says "However, before the tree object is written, `merge-ort` wants to write out a blob object (except in cases where the merge results in a blob that already exists in the database). And this can fail, too, but we ignore that write failure so far." So this commit is one that fixes something before the segmentation fault. Later in the description, it also mentions that "This is _not_ just a cosmetic change," which leads me to believe it's somewhat of importance.
 
 Because it seems like this commit is important and also a continuation of the original commit that fixes the segmentation fault, I believe this commit should be patched as well. To patch this commit, I run git format-patch -1 92481d1b26.
 
-Now, to check out the original fix, I need to find out what the commit ID of the commit is before 92481d1b26. To find this information, I run git log --pretty=format:%H -n 1 92481d1b26^. I get the result 0b55d930a69692c7f4e7b90e35fa41f6c46df4bc and view this particular commit.
+Now, to check out the original fix, I need to find out what the commit ID of the commit is before 92481d1b26. To find this information, I run git log --pretty=format:%H -n 1 92481d1b26^. I get the result 0b55d930a69692c7f4e7b90e35fa41f6c46df4bc and view this particular commit, which is also authored by Johannes Schindelin.
 
 This seems to be the commit we're looking for since the title is "merge-ort: fix segmentation fault in read-only repositories." Therefore, I generate another patch for this specific commit using the same command as before (but with a different commit ID).
 

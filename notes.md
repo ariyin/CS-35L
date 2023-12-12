@@ -1067,3 +1067,759 @@ inconsistent state
 ![img](images/img7.jpg)
 ![img](images/img8.jpg)
 ![img](images/img9.jpg)
+
+## Lecture 10
+
+### Backups
+want to cheap out on backup ops / version control dev
+- do them less often -> decrease amount of data that needs to be backed up, cheaper overall
+- staging -> backup to a relatively expensive device at first, backup expensive device to cheaper device later on
+    - flash -> disk -> tape
+    - each of these devices are slower
+    - put most commonly used backup in flash, less commonly backup in other device
+- remote backup
+    - amazon might be able to back up cheaper than you, back up using amazon instead of locally
+- incremental backups
+    - if you've alr backed up a file, have a copy of what it looked like last week, and you want to make a copy now, just make a copy of the changes since last time
+    - "abcdefghi" - "abcdEfgi" => "e->E, no H"
+    - edit script from old to new: sed script
+    - to transform any old string to new string, delete stuff you don't like and insert stuff you do like
+        - insert a char C at location L
+        - delete location T
+    - change = insert + delete 
+- diff old new
+    - diff -u old new
+    - diff -U old new
+    - diff -u outputs symmetric differences (in math, uses symbol of minus sign with delta over it)
+- patch f < delta
+    - patch -R f < delta
+    - look at the diff output and convert old to the new
+- how to implement diff3
+    - diff3 M O Y
+        - diff O M > D1
+        - diff O Y > D2
+        - merge D1 D2 > Dboth
+- optimizing backups
+    - deltas
+    - delta grooming: get rid of old stuff you don't really need anymore
+        - automate delta grooming
+            - delete every file that hasn't been read or written in the last month
+            - ex: apps in iphone
+    - deduplication
+        - usually done at the block level
+        - take all of your data, divide it into blocks of a certain size
+        - if files look like this A | B | A | A | B | C | D | C | A | A 
+        - backups: A | B | C | D
+    - compression: back up a compressed version of the original file
+    - multiplexing: backup several different things to the same backup device
+    - encryption
+- test your backups
+    - checksumming
+    - checksum before decryption, checksum after encryption?
+
+### Version Control
+- backups on steroids (in eggert's words)
+- version control aka backups for developers
+- needs
+    - backups
+    - history for answers to "why are things this way?"
+        - bug reports and connections to source code
+        - merge two histories into a single unified version
+        - comments
+            - helpful to see reasoning
+            - problem: people lack time to write them or forget to do it
+    - future
+        - many-worlds in software
+- features
+    - keep histories indefinitely
+    - record metadata too (timestamps, comments, author)
+    - atomic changes to sets of files
+        - we want large atomic changes (can't split the changes into smaller changes)
+        - don't want people to get confused when they see smaller split files
+    - renames of files (as part of commit)
+    - tailorability via hooks (lets you control V.C.S.)
+    - signed commits
+    - format conversion
+    - navigate/visualize complex histories
+
+### Git Basics
+- 2 things:
+    - object database to record history
+    - index plans for future
+    - step 2 to step 1 is a commit
+    - making changes to step 2 is add
+- copy repository (+, by default, working files)
+    - into .git subdirectory
+- commit messages are a big deal!
+    - why? change
+    - justifications for changes
+    - <= 50 chars
+    ```
+    elevator pitch
+
+    carful concise description of why
+    ```
+- git diff: diff index workingfiles -u
+
+## Lecture 11: A Continuation of Last Lecture
+- git init
+- git clone
+- editing working frile 
+    - git diff: difference from index to working file
+    - git diff --cached: difference from index to latest version?
+    - git diff HEAD
+- git commit id: 40 hex digits = 160 bits 
+    - 160 bit unsigned binary integer?
+    - uniquely identify a commit
+    - checksum of all the contents of all committed files + metadata
+    - no one in the entire history of using git has ever come up with two different commits that have the same checksum
+    - "perfect checksum"
+    - SHA-1: secure hash algorithm, very hard to come up with duplicates, computationally infeasible to figure out what led to it
+        - one-way hash function
+        - s is now a misnomer, computationally infeasible to come up with collsions in the past, possible to mess up git now bc better technology 
+    - shorthand for the id:
+        - unambiguous prefix is good enough
+        - keyword HEAD
+- git show
+- git checkout commit-id: will checkout to back what's in the directory during commit-id
+    - master
+    - main
+- origin/HEAD
+- origin/master: repository that we cloned from (as of cloning)
+- git commit
+    - git commit --amend: pretends like the bad commit never happened, makes it inaccessible from head
+- git ls -files
+- shorthands
+    - HEAD^^^^ = HEAD~4 = HEAD^4
+    - master^^^^ master~4^
+- git diff master..HEAD
+- git log master..HEAD: what's in HEAD and not in master
+- .gitignore: list of working files for git to ignore
+    - which files should you commit?
+    - 0: everything
+    - 0.s. only source + expensive files
+    - 1. only source files manually edited, not auto-generated (you do commit makefiles, etc)
+- .gitconfig: configuration parameters
+- git rm FILE
+- git blame FILE
+
+## Lecture 11: Version Control Cont.
+
+some mistake recovery:
+- `git reset --soft <commit ID>`
+    - `--soft` leaves working tree and index alone
+    - `--hard` hard reset, most dangerous, throws away index and changes working tree so it matches commit ID exactly (lose working tree and index)
+    - `--mixed` middle ground, reset index but leaves the working tree, default
+        - done a bunch of git adds, only wanted to add some other files
+- tags: short names for commits
+    - `git tag v1 <commit ID>`
+    - `git tag -l`
+    - `git diff v1`
+    - `git diff <commit ID>`
+    - `-a` annotated tag
+- branches: lightweight automatically moved tag (pointer to a commit)
+    - movable tag (git does the moving)
+    - what are branches for
+        - old versions still maintained
+        - alternate versions = fork
+        - feature branches
+    - `git branch xyz`
+    - `git checkout -b xyz`
+    - `git branch -m a b` move branches
+    - `git branch -d a` delete branch
+        - `-D`
+
+```
+git checkout main
+git add foo
+git commit
+git checkout b
+git add bar
+git commit
+git checkout c
+git add baz
+git commit
+```
+- merges don't always do the right thing
+- rebasing
+```
+git checkout f
+git rebase main
+
+git checkout main
+git rebase main
+git rebase -i
+```
+
+## Lecture 12
+- rebasing = editing history
+- `git rebase -i commit`
+- `git rebase --abort`
+- `git rebase --ignore-date`
+- `git reflog`
+
+### Remote repositories
+- Git is distributed version control system (DVCS)
+- `git clone [link]`
+- `git push`
+- `git pull` = `git fetch` (update origin/main) + `git merge` (can have conflicts)
+- `git stash`: saves index and working files into a stashed area
+- `git bisect`: binary search to see where a bug is introduced, Olog2N
+    - `git bisect start BAD GOOD`
+        - `git bisect start HEAD v19.7`
+    - `git bisect run make check`
+    - won't work if good and bad commits are intermixed
+
+## Lecture 13
+
+### Git from the implementer's POV
+Two properties we want to implement
+- Distributed version control: Git is imaginary, things are backed up on different devices
+- Atomic commits: change happens to all the packages simultaneously, can update multiple files simultaneously without having to worry about someone else making a change at the same time
+
+Atomic ops at file system level
+- `mkdir d`
+- `ln a b`
+- `mv a b` (in same file system)
+- `rm a`
+
+Nonatomic
+- `cp a b`
+
+Plumbing commands: low-level
+- `git write-tree`
+Porcelain (shell scripts): manipulate plumbing commands
+- `git commit`
+
+.git
+- branches (obsolescent directory)
+- config: configuration file
+- description: not used all that much
+- HEAD: git log HEAD^! = HEAD^..HEAD
+- hooks: bunch of commands (do nothing by default)
+- index: index
+- info/exclude: like .gitignore (typically committed and shared, but this repo only)
+- logs: list of where you've been
+- objects: all the objects in your repository (either one file (easy access and fast), or packed together in a pack (difficult access and slower, but less space, more complicated))
+
+Emacs setup:
+- `git clone`
+- `./autogen.sh`
+    - Configures Git in a way that Git itself won't do unprompted
+    - Creates a shell script called "configure" which you can run later
+
+Git objects (unpacked)
+- Linux filesystem design is a heavy influence
+- Regular files = blobs = arbitrary byte sequences
+- Directories = trees = map names to objects
+- ?? = commits
+
+A commit is an object that 
+- Refers to a tree -> state of working files (normally)
+- Has meta info about the tree
+    - Author <-  time
+    - Committer <- time
+    - Message
+    - Parent commit(s)
+
+Blob implementation
+- `"blob[space][number of bytes of data][nullbyte][content of data]"`
+- Compression (zlib) -> file 
+
+Zlib compression
+- Python API
+- How does it work? It doesn't always compress.
+- Huffman coding
+- Dictionary compression: acts a lot like diff
+
+## Lecture 14
+
+### Huffman coding
+- 1950s comm networks
+- Problem: sending message as sequence of symbols and in order to figure out what symbol is both send/receiver need to agree
+    - Assume symbol set known to sender/reciever
+    - Nowadays might by bytes so 2^8 possible
+- Standard English text: most common is space, then "e", assuming English then can come up with weights for each letter, sum of weights is 1
+- Want short representation for space and long representation for less common (like `)
+    - Short being few bits, long being lots of bits
+- Varying length encoding
+- More balanced approach (instead of making space 1 bit), less balanced than English (completely balanced)
+- Huffman's algorithm:
+    - Have nodes with weights
+    - Find two least weight nodes
+    - Merge the two nodes
+    - Build a tree
+    - Have a node that is the sum of the subtrees
+    - Repeat this process until just one node left
+    - Building a binary tree
+    - The root of the tree is the last node remaining with root 1
+    - Binary tree: on left side may be 0 and right side may be 0
+    - Follow the tree and the 0's and 1's to get the character we want (we only send leaves of tree not the internal nodes)
+- Can have precomputed table shared by sender and recipient
+    - Other option is sender can compute new table for each message
+    - Also can have adaptive Huffman coding
+- Table may be wrong if in other language
+- If have language that each character is equally likely, then have perfectly balanced binary tree
+- In x86 can have bits spanning the bytes, might waste a few bits at the end
+- Huffman proved that optimal, can't compress more
+- Adaptive Huffman coding
+    - Sender and recipient initially start off assuming all symbols equally likely
+    - Then send a character and adjust
+    - Idea is that the Huffman tree mutates after each character is sent
+    - Both sender/recipient agree on how tree mutates
+
+### Dictionary compression
+- Do things in terms of words, where words are a string of symbols (usually short string)
+- Have dictionary, each word has an integer
+    - If there are 2^15 words than have 15 bit integer
+- Downside is fixed dictionary
+- Adaptive dictionary coding
+    - Sender and recipient can start off with empty dictionary
+    - Sender send something to recipient then have one thing in the dictionary
+    - As send more characters then build up dictionary
+    - Sender sending the recipient dictionary entries
+    - Most of time able to look in previous parts of the dictionary
+- Downside compared to Huffman: recipient needs to remember a lot of data if have a lot of data
+- Offset?
+- Doesn't compress as well but less RAM
+- Can reuse parts of words: can use is in isn't for his
+
+### Usage
+- Zlib uses Huffman?
+- Gzip does both types of encodings: dictionary then Huffman
+    - Then recipient needs to decode
+- Bit flipping: can't flip to fix issues
+- Compression issue: loss redundancy in data, high premium for store data in compressed data, errors in compressed data is much worse
+
+### Character encoding
+- 'a' char
+- int i = 'a';
+- char c = 92;
+
+History of characters
+- Small character sets
+    - 64 characters (6 bits)
+    - 26 letters
+    - 10 digits
+    - specials (space)
+- Word oriented computers
+    - 36-bit words (6 characters)
+
+IBM 360
+- Byte-addressible memory
+    - 8-bit bytes (to this day)
+
+ASCII: character set that's not manufacture dependent
+- 7-bit character set
+- 8th bit: parrty (?)
+- OK for English (not enough for some characters like i in naive, the i with the two dots)
+
+New set of encodings: ISO 8859
+- for 8 bit character sets
+- ISO 8859/1 for western Europe
+- /2, /3, /4, /5... for different language sets
+- Not very good, metainformation about text files
+- HTTP protocol -> GET response
+
+CJK: multibyte encodings
+- Sequence of bytes to represent a char
+- fixed-width representation: big change, compatibility issue
+- varying length encoding
+- Shift-JIS (Japan)
+    - ASCII chars are 1 byte (excpetion \ _)
+    - Top bit of a byte is 1: 
+        - Two-byte character -> 15-bit character
+        - 0x40 - 0xFB (holes)
+        - Simplification (this representation)
+
+EUC (Extended Unix Code): fixed some of the problems
+Unicode: single character set for the world
+- Is A and a the same (aside from font differences)
+
+UTF-8: Unicode Transformation Format (8-bit)
+- ASCII represents itself (U+0000 - U+007F) (0xxxxxxx)
+- 110xxxxx 10xxxxxx  (U+0080 - U+07FF)
+- 1110xxxx 10xxxxxx 10xxxxxx (U+0800 - U+FFFF)
+- 11110xxx 10xxxxxx 10xxxxxx 10xxxxxxx (U+10000 - U+10FFFF)
+- 11111011 encoding error
+
+## Lecture 15
+- Synoglyphs: chars look different but are the same 
+- Homoglyph: look same, but are different (Latin, Greek, Russian 'o')
+- Normalization: q + [combining character 1] + [combining character 2] = q + [combining character 2] + [combining character 1]
+    -  `strcomp` will return that they're different if you compare the two above
+- U+0000 - U+007F: 0xxxxxxx
+- U+0080 - U+07F: 110xxxxx 10xxxxxx
+- When you have two possible representations of the same unicode character, you must use the shortest one
+
+### Low level compiling 
+- C = C++ - some stuff
+- C++ features that are not in C
+    - Classes (inheritance, most polymorphism, most encapsulation)
+    - Objects are all "concrete"
+    - Structs can have static data members and functions
+    - Namespace control (for modularity)
+    - Overloading (for abstraction)
+    - Exception handling
+    - Memory allocation is builtin ('new') (use malloc instead)
+    - cin, root (use functions from `<stdio.h>`)
+
+### Architecture of a C environment
+```
+$ gcc -f foo.c > foo.i // preprocessing
+$ gcc -S foo.i         // => foo.s, assembly code for x86-64
+$ gcc -c foo.s         // => foo.o, machine code + blank areas + tables (can't execute)
+$ gcc foo.o            // => a.out (filled in blank areas)
+$ ./a.out              // runs your program
+```
+
+### Some other tools for low-level dev
+- Ops tools
+    - `ps`
+    - `top`
+- Dev tools for debugging
+    - `time`
+    - `strace`, `ltrace`, etc
+    - `valgrind`
+    - `gdb`
+
+### What GCC is good for other than to run
+- Security improvement
+    - `$ gcc -D_FORTIFY_SOURCE=2` = `#define_FORTIFY_SOURCE 2`: Generates slower but safer code
+    - `gcc -fstack-protector`: Protect against stack overflow
+        - Start of function: push canary
+        - End of function: return canary
+        - Check if canary is the same
+        - If not equal, halt
+        - Contents of canary is random
+    - `gcc -fcf-protection=full`: Intel calls Control-flow Enforcement Technology (CET), kills off gadgets, limits targets of branches + shadow stack
+- Performance improvement
+    - `gcc -o`: Optimize, spend more CPU compiling goal, more efficient program, give up debuggability
+        - `gcc -o -02`: production systems, optimize a little harder
+        - `gcc -o os`: optimize for coded size, not for cpu time (program small) 
+        - `gcc -o og`: optimize as much as you can without causing debugging disaster
+        - `gcc -o0`: do not optimize
+        - Lots of tradeoffs in debugging flags
+    - `unreachable()`: only call from parts of code that never get called, behavior is undefined, never call this function
+    - Attributes:
+        - `int x __attribute__((aligned(T)));`
+        - `char buf[1024] __attribute__((aligned(1024)));`
+        - `void f (void)__attribute__((cold));`: Put calls to f in the freezer
+    - Profiling:
+        - Ordinary code + counting code
+        - Improve performance of code that is frequently called
+        - Useful for testing: if count = 0, test that part of the code
+        - Useful for compiling (hot/cold done by compiler if profiling)
+    - `gcc -flto`: Link Time Optimization, generate bad machine code in .o files but also put cleaned up of course into the .o file
+        - `gcc -flto a.o b.o c.o`: Whole program optimization, generates one huge source code and optimizes the whole thing, will take a looong time
+
+### Helping GCC generate more secure code
+- `static_assert(constant expression);`
+    - `static_assert(LONG_MAX >> 62 > 0);`: only want program to be compiled if longs are long enough
+    - Zero instructions at runtime
+    - C23, C++17+
+- `gcc -Wall`
+    - `-W` = warn
+    - All "useful" warnings
+
+## Lecture 16
+Low level programming
+
+### Static checking
+- Compiler options
+- `gcc -Wall` = `gcc -Wcomment -Wparenthesis...`
+- `-Wcomment`: warns you if your comment looks squirrely
+    - `/* x + t; /* y++j */`
+    - Could've possibly made a mistake like
+    ```
+    x++; /* Add 1 to x.
+    y++; /* Add 1 to y. */
+    ```
+    - Doesn't do anything to y because it's commented out
+- `Wparentheses`: warns you about squirrely uses of parentheses
+    ```
+    x = y + z << 2;
+    if (a && b || c)
+    ```
+    - If you think it's fine and you like it, can `gcc -Wall -Wno-parentheses`
+- `Waddress`
+    ```
+    char *p= ...;
+    if (p == "xyz") ...
+    ```
+    - Valid code that returns false, no way that p equals "xyz"
+- `Wstrict-aliasing`
+    - `gcc -f no-strict-aliasing`
+    ```
+    double a = 27.5;
+    int *p = (int *)&a;
+    (*p)++;
+    ```
+- `Wmaybe-uninitialized`
+- `gcc -Wextra`
+    - `Wtype-limits`
+- `gcc -fanalyzer` (slooow)
+    - `Wmaybe-uninitialized` etc, but on (on steroids) across function boundaries
+- False positives: warning but no real problem
+- False negatives: no warning but real problem
+- Static checking by helping the compiler
+    - `[[noreturn]] void exit(int)`: This function does not return, in C23 (cannot do this yet)
+    ```
+    [[noreturn]] void loop(void) {
+        while(true) continue;
+    }
+    ```
+    - `Noreturn`: This function does not return a value, in C11
+- Attributes
+![stacking checking attribute](images/staticcheckingattribute.png)
+```
+double sqrt (double x)
+    __attribute__((const));
+    pure + value depends only on args
+```
+```
+char *my_alloc(size_t n) __attribute__ ((alloc_size(1), malloc(free, 1), returns_nonnull));
+
+caller:
+    {
+        char *x = malloc(20);
+        strcpy(x, "hello");
+        return x[3];
+    }
+```
+
+### Dynamic checking
+- Runtime checking: you can do this yourself
+    - Does not kill off all bugs, only good for that one run of your program
+    - Could have latent bug in program, if program doesn't execute that code, you're not going to find it
+    - Guarantee presence of bugs but not the absence (static checking can do this)
+    - Can find bugs that static checking can't
+```
+int a[100];
+int f(int i) {
+    if(!(0 <= i && i < 100))
+        error();
+    return a[i];
+}
+```
+- `gcc -fsanitize=address`
+    - generate extra code
+    - catch bad pointers, subscripts
+    - false negatives are possible
+    - slow code
+- `gcc -fsanitize=undefined`
+    - undefined behavior other than bad pointer
+    ```
+    int x = INT_MAX;
+    x++;
+    ```
+- `valgrind`
+    - `valgrind ./a.out`: runs a.out in an interpreter that checks for memory + similar errors
+    - slower than `gcc -fsanitize`
+    - no need to recompile
+
+### Debugging
+- Don't do it if you can
+- Inefficient way to find and fix bugs
+- Proactive: design code to avoid bugs, design code to easily find bugs
+- Test cases: whenever you make a change to your program, run test cases
+    - Test Driven Development (TDD)
+- Use a better platform (Don't write it in C/C++)
+- Defensive Programming
+    - Assertions `# include <assert.h>`
+    - Exception handling: `assert (i < n);`
+    - Traces and logs `if(!(i < n) throw Ouch();)`
+    - Checkpoint/restart
+    - Barricades
+
+## Lecture 17
+
+### Ways to "Control" Bugs
+- Interpreter: program that simulates a machine in C
+    - In C:
+    ```
+    int main(int argc, char **arcv)
+    {
+        char *prog = argv[1];
+        char *instructions = readfile(prog);
+        char *ip = instructions;
+        while(true)
+        {
+            char instruction = *ip++;
+            switch(instruction)
+            {
+                case 0:
+                    return 0;
+                case 1:
+                    double a = *sp++;
+                    double b = *sp++;
+                    *--sp = a + b;
+                    break;
+                case 2:
+                case 47:
+                    // subscript checking
+            }
+        }
+    }
+    ```
+    - Used by Python, Emacs, JavaScript, etc
+    - Good for debugging
+    - Better runtime checking
+    - Slower
+    - Can compile a program foo.py -> foo.pyc with Python compiler
+        - Contains Python bytecodes
+        - Designed for Python virtual machine, instructions will know what to do
+    - Emacs list bytecodes: foo.el -> foo.elc
+    - Java bytecodes also exist
+    - `gcc -o0`: Don't optimize
+- Virtual machines: Physical machine + control registers
+    - Better performance than software interpreters
+    - Same instruction set as physical machine (more compatible)
+    - Hard to debug
+
+### How to Debug
+- Often "print" is enough (sometimes better than debugged)
+- Debugger changes how program inherently runs (timing problem is different when using debugger)
+- Stabilize the failure (make the bug reproduceable) (e.g. use of uninitialized RAM)
+    - Even if the program still crashes, the error is stablizied
+    - Want it to work 100% of the time or fail reliably
+    - Biggest time sink
+```
+char *p = malloc(1000);
+memset(p, 47, 1000); // get the same value each time the program runs
+```
+- Locate the cause (requires understanding)
+    - Second biggest time sink
+- Fix the bug
+    - "Ez" - Eggert
+
+- Debugger: program execution exploration
+    - Controls execution of a program
+- Process: running program
+- With ptrace, GDB can
+    - Stop the debugged process P
+    - When P is stopped
+        - Change P's memory, registers (state) (content of variables, instructions)
+        - Read P's "   " (state)
+    - Resume P again, from existing state
+    
+### GDB
+- `gcc -g foo.c`: Generate debug info
+- `gdb a.out`
+- `(gdb) (setup commands)`: Environment for program
+- `(gdb) run`: Start new subprocess
+- `(gdb) run -a b 'xyz ab'`
+    - Two processes
+    - Equivalent to `$./a.out -a b 'xyz db'`  
+- `(gdb) attach 49172`: 49172 is already running, GDB stops the process and you're in control of the process
+    - Dangerous, often not allowed
+- `(gdb) detach`
+- `(gdb) set cwd /etc`: Set current working directory
+- `(gdb) set env PATH /usr/bin/bin`: Sets environment for the debugged program
+    - Will inherit GDB's environment by default
+- `(gdb) set disable-randomization on/off`
+- Examine program state
+    - `(gdb) p m*n + 3`: Print m*n + 3
+    - `(gdb) p f(3) + 4`: f is a user-defined function
+- Change program state
+    - `(gdb) p n = 12`: Print 12 and modify n
+    - `(gdb) p a[i] = 5`
+- `(gdb) p/x a[i]`: Print in hexadecimal
+- `(gdb) p a[i]@10`: Print out a[i] for 10 values
+- `(gdb): bt`: Backtrace, prints out where you are and where the caller is, and where the caller's caller is
+- `(gdb) info regs / ir`: Print out registers
+- `(gdb) p $rip`: Print out $rip
+- Breakpoints
+    - Cheap, temporarily changing the program
+    - `(gdb) b f`: Set a breakpoint at function f
+    - `(gdb) info break / ib`: List breakpoints
+    - `(gdb) delete 9`: Delete the breakpoint with that number
+    - `(gbd) s`: Start
+- Continuing
+    - `(gdb) c`: Let the debug process P run
+    - `(gdb) step`: Continue until the source code line number changes (lower level, slowly)
+    - `(gdb) next`: Continue until next source code line (higher level, faster)
+    - `(gdb) fin`: Continue until current function returns
+    - `(gdb) stepi / si`: Execute just one instruction then stop (lowest level execution)
+- Watchpoints
+    - More expensive, single step program to see condition
+    - `(gdb) watch EXPR`: No function calls
+    - `(gdb) watch p == null`: Watch when p == null
+- `(gdb) rc`: Reverse continue, please run the program backwards until you hit a breakpoint/watchpoint
+- `(gdb) checkpoint`: Saves entire state of the program somewhere, take a snapshot of your process
+- `(gdb) restart`: Restore from that snapshot
+
+## Lecture 18
+
+### Debugging
+- Remote debugging
+    - Popular with embedded systems
+    - GDB runs on machine 1 and the program being debugged runs on machine 2
+    - Connection: serial port, TCP
+    - Sends commands through the connection, runs a small program on machine 2
+    - Machines don't need to have the same type of architecture
+    - `(gdb) target`
+- Extending GDB
+    - GDB macros
+    ```
+    // .gdbinit (configuration file)
+    (gdb) define printloc
+    (gdb) print *(long*) $arg1
+    (gdb) end
+
+    (gdb) printloc x[5] // same as (gdb) print *(long*)x[5]
+    ```
+    - Problem: Have to learn GDB macros language
+    - `(gdb) python`: Python interpreter built in GDB, that way you don't have to learn the macros language
+    - `(gdb) guile`: A different kind of lisp
+
+### Security
+- Secure(ish) Software Construction
+    - A security model (of your system; what you're defending)
+        - Confidentiality (or privacy)
+        - Integrity
+        - Availability (or service)
+    - A thread model (of your attackers, what they'll attemp)
+    - You need to identify in your model
+        - Assets
+        - Vulnerabilities
+        - Threats
+- General functions security models need:
+    - Authentication (prevents masquerading): Passwords, DUO
+    - Authorization: Access control list
+    - Integrity: checksum
+    - Auditing: Logs
+    - Implement efficiently, correctly
+- Threat modeling and classification
+    - Insider
+    - Social engineering (K. Mitnick)
+    - Network
+        - Phishing
+        - Drive-by download
+        - DoS denial of service
+        - Buffer overruns
+    - Device attacks
+        - Bad USB
+- Testing security is different
+    - Failures are not "random"
+    - The world is out to get you
+    - Static analysis is more valuable (proves that the problem will never happen)
+    - Penetration testing
+- Software breaking
+    - Software often involve violating abstraction boundaries
+    - Caches should improve performance without changing behavior
+    - Use timing information to find out what's been cached
+- Risk assessment
+    - Catalog your risks, for each risk:
+        - Probability
+        - Damage cost
+        - Multiply the above two, sort the result in descending order
+    - Phases of development / common risks
+        - Requirements / neglecting, not neegotiating
+        - Architecture / no threat model
+        - Design / design without worrying about security
+        - Coding / SQL injection
+- Cross-site scripting: Download JavaScript website, download whatever they want to, execute code (?), executing code from wrong website
+- Repudiation: User wants to repudiate what they've done
+- Elevation of privilege: User exploits bug in a problem to do what they're not supposed to do
+- GET A CHECKLIST WHEN TRYING TO BUILD SECURE APPLICATIONS

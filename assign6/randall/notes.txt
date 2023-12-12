@@ -1,0 +1,136 @@
+notes.txt
+
+Modify the Makefile so that the command 'make check' tests your program.
+- Create a shell script test.sh that tests if randall outputs the right number of bytes
+- In Makefile, add check: ./test.sh
+- Give test execute permissions with: chmod +x test.sh
+- Call make check
+- Outputs 'success'
+
+Split the randall implementation by copying its source code into the following modules.
+- Copy over the hardware implementation from the randall.c file to rand64-hw.c and remove those 
+implementations from the randall.c file
+    - Remove the "static" keyword from function definitions
+    - For the .h file, copy the same functions, but change them to function declarations and add a 
+    header guard
+    - Include the .h file in the .c file and randall.c file and include "#include <immintrin.h>" 
+    in the .c file
+    - Modify the Makefile to compile the specific implementation file (in this case for 
+    rand64-hw.c), then compile the object file for randall.c, then combine the two object files
+- Copy over the software implementation from the randall.c file to rand64-sw.c and remove those 
+implementations from the randall.c file
+    - Repeat the rest of the instructions
+    - Include "#include <stdio.h>" and "#include <stdlib.h>" in the .c file
+- Copy over writebytes from the randall.c file to output.c and remove the implementation from the 
+randall.c file
+    - Include "#include <limits.h>", "#include <stdbool.h>", and "#include <stdio.h>" in the .c 
+    file
+    - Include "#include <stdbool.h>" in the .h file
+- Leave both options.h and options.c blank, but include the options.h file in randall.c 
+
+Modify the Makefile to compile and link your better-organized program.
+- For each pair of header and implementation files, create a new entry in Makefile for 
+[name].o: [name].c [name].h
+- For each of these target prerequisite pairs, add a recipe consisting of 
+$(CC) $(CFLAGS) [name].c -o [name].o -c
+
+Add some options to your program to help you try to improve its performance. 
+- output.c:
+    - Move the code that handles the output in randall.c to output.c and add the respective 
+    headers in the .h file
+- options.c:
+    - Add a function that parses the arguments (takes argc and arv and includes optionInfo, 
+    a struct that stores the option information)
+    - For 'i', check if it's rdrand, lrand48_r, or /F
+    - For 'o', check if it's stdio 
+    - Check if there's an unexpected argument ('?') or no argument (:)
+    - After checking for these cases, process the original required number input
+    - Store the processed variables into optionInfo
+- randall.c:
+    - Modify the main function to use the function and variables in options.c
+- rand64-hw.c:
+    - Create a static struct drand48_data and initialize it to have a seed based off of the current 
+    time
+    - Add hardware_rand48 for lrand48_r
+- rand64-sw.c:
+    - Modify the code to take a file path instead of hardcoded /dev/random
+- General clean up:
+    - Add an error message and return 1 to error handling
+    - Add return 0 if program succeeds
+
+Add some 'make check' tests to check your additions to randall.
+- Updated in test.sh
+- Created tests for base cases, -i options, -o options, combined options, 
+and cases where there should be an error
+
+Time the implemetation.
+
+Default options:
+
+time dd if=/dev/urandom ibs=8192 obs=8192 count=16384 >/dev/null
+16384+0 records in
+16384+0 records out
+134217728 bytes (134 MB, 128 MiB) copied, 0.948712 s, 141 MB/s
+
+real    0m0.962s
+user    0m0.014s
+sys     0m0.918s
+
+time ./randall 133562368 >/dev/null
+
+real    0m4.304s
+user    0m3.964s
+sys     0m0.164s
+
+time ./randall 133562368 | cat >/dev/null
+
+real    0m4.379s
+user    0m3.837s
+sys     0m0.425s
+
+time ./randall 133562368 >rand.data
+
+real    0m4.377s
+user    0m3.803s
+sys     0m0.346s
+
+Additional trials:
+
+time ./randall -i /dev/urandom 133562368 >/dev/null
+
+real    0m4.190s
+user    0m4.034s
+sys     0m0.076s
+
+time ./randall -i /dev/urandom 133562368 | cat >/dev/null
+
+real    0m4.105s
+user    0m3.993s
+sys     0m0.246s
+
+time ./randall -i /dev/urandom 133562368 >rand.data
+
+real    0m4.158s
+user    0m3.970s
+sys     0m0.123s
+
+time ./randall -i lrand48_r 133562368 >/dev/null
+
+real    0m1.623s
+user    0m1.541s
+sys     0m0.049s
+
+time ./randall -i lrand48_r 133562368 | cat >/dev/null
+
+real    0m1.743s
+user    0m1.621s
+sys     0m0.250s
+
+time ./randall -i lrand48_r 133562368 >rand.data
+
+real    0m2.027s
+user    0m1.423s
+sys     0m0.349s
+
+Final clean up.
+- Make sure the given code that checks for sentence length and carriage returns outputs nothing
